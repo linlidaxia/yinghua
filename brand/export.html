@@ -1,0 +1,18 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  html, body { margin: 0; padding: 0; background: transparent; }
+  .canvas { width: 1024px; height: 1024px; display: flex; align-items: center; justify-content: center; }
+  img { width: 1024px; height: 1024px; display: block; }
+</style>
+</head>
+<body>
+  <div class="canvas"><img id="logo" src="logo-a.svg"></div>
+  <script>
+    const target = new URLSearchParams(location.search).get('f') || 'logo-a.svg';
+    document.getElementById('logo').src = target;
+  </script>
+</body>
+</html>

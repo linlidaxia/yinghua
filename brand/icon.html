@@ -1,0 +1,32 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  html, body { margin: 0; padding: 0; background: transparent; }
+  .icon {
+    width: 1024px; height: 1024px;
+    background: linear-gradient(150deg, #FF9BC0 0%, #F2538C 52%, #D22F68 100%);
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 232px;
+  }
+  .icon img { width: 700px; height: 700px; display: block; }
+  .fg { width: 1024px; height: 1024px; display: flex; align-items: center; justify-content: center; }
+  .fg img { width: 640px; height: 640px; display: block; }
+</style>
+</head>
+<body>
+  <div id="root"></div>
+  <script>
+    const mode = new URLSearchParams(location.search).get('mode') || 'icon';
+    const root = document.getElementById('root');
+    if (mode === 'foreground') {
+      root.className = 'fg';
+      root.innerHTML = '<img src="logo-white.svg">';
+    } else {
+      root.className = 'icon';
+      root.innerHTML = '<img src="logo-white.svg">';
+    }
+  </script>
+</body>
+</html>

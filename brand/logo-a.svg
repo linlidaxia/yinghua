@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="1024" height="1024">
+  <defs>
+    <linearGradient id="birdPink" x1="0.1" y1="0" x2="0.9" y2="1">
+      <stop offset="0" stop-color="#FF9CC0"/>
+      <stop offset="0.5" stop-color="#F25C8F"/>
+      <stop offset="1" stop-color="#D42D66"/>
+    </linearGradient>
+    <linearGradient id="lotusPink" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFC0D8"/>
+      <stop offset="1" stop-color="#EE5A90"/>
+    </linearGradient>
+  </defs>
+
+  <!-- ================= 莲花 ================= -->
+  <g fill="url(#lotusPink)">
+    <g transform="rotate(-74 256 452)">
+      <path d="M234 452 C232 404 240 362 256 338 C272 362 280 404 278 452 Z"/>
+    </g>
+    <g transform="rotate(74 256 452)">
+      <path d="M234 452 C232 404 240 362 256 338 C272 362 280 404 278 452 Z"/>
+    </g>
+    <g transform="rotate(-38 256 452)">
+      <path d="M230 452 C228 390 238 336 256 300 C274 336 284 390 282 452 Z"/>
+    </g>
+    <g transform="rotate(38 256 452)">
+      <path d="M230 452 C228 390 238 336 256 300 C274 336 284 390 282 452 Z"/>
+    </g>
+    <path d="M226 452 C224 382 235 326 256 282 C277 326 288 382 286 452 Z"/>
+    <path d="M150 440 Q256 460 362 440 Q332 490 256 496 Q180 490 150 440 Z"/>
+  </g>
+
+  <!-- ================= 莺鸟（栖息于莲花之上） ================= -->
+  <g fill="url(#birdPink)" transform="translate(0 16)">
+    <path d="M204 268 C176 258 150 246 126 228 C148 248 158 268 164 288 C180 284 194 278 204 268 Z"/>
+    <path d="M292 118
+             C318 120 334 138 332 162
+             L368 172
+             L332 182
+             C332 206 322 224 302 234
+             C298 258 276 274 246 276
+             C220 278 198 268 184 250
+             C196 228 204 206 206 186
+             C214 154 236 128 264 120
+             C272 118 282 117 292 118 Z"/>
+    <path d="M238 186 C264 182 286 194 296 214 C272 226 246 220 230 204 Z"
+          fill="#FFC9DD" opacity="0.9"/>
+  </g>
+  <circle cx="316" cy="166" r="5.5" fill="#FFFFFF"/>
+</svg>

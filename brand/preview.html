@@ -1,0 +1,84 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>莺花 LOGO 预览</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: "Microsoft YaHei", "PingFang SC", system-ui, sans-serif; background: #f4f4f6; color: #16161A; }
+  .wrap { display: flex; flex-direction: column; gap: 18px; padding: 24px; }
+  .row { display: flex; gap: 18px; }
+  .card { flex: 1; border-radius: 22px; padding: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; min-height: 320px; }
+  .white { background: #fff; box-shadow: 0 10px 30px rgba(0,0,0,.06); }
+  .tint { background: linear-gradient(160deg, #FFF1F6, #FFE2EE); }
+  .dark { background: #161117; }
+  .label { font-size: 13px; opacity: .6; }
+  .dark .label { color: #fff; opacity: .7; }
+  h2 { font-size: 15px; margin: 0; font-weight: 600; }
+  img { display: block; }
+  .big { width: 240px; height: 240px; }
+  .small { width: 96px; height: 96px; }
+  .tiny { width: 40px; height: 40px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="row">
+    <div class="card white">
+      <h2>方案 A · 鸟上莲下（当前应用图标）</h2>
+      <img class="big" src="logo-a.svg">
+      <div style="display:flex;align-items:center;gap:16px;"><img class="small" src="logo-a.svg"><img class="tiny" src="logo-a.svg"></div>
+      <div class="label">白底 / 96px / 40px</div>
+    </div>
+    <div class="card tint">
+      <h2>方案 A · 粉色底</h2>
+      <img class="big" src="logo-a.svg">
+      <div class="label">粉底白 Logo 用作图标</div>
+    </div>
+    <div class="card dark">
+      <h2 style="color:#fff">方案 A · 深色底</h2>
+      <img class="big" src="logo-a.svg">
+      <div class="label">深色模式</div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="card white">
+      <h2>方案 A-line · 线描莲花（参考素材风格）</h2>
+      <img class="big" src="logo-line.svg">
+      <div style="display:flex;align-items:center;gap:16px;"><img class="small" src="logo-line.svg"><img class="tiny" src="logo-line.svg"></div>
+      <div class="label">白底 / 96px / 40px</div>
+    </div>
+    <div class="card tint">
+      <h2>方案 A-line · 粉色底</h2>
+      <img class="big" src="logo-line.svg">
+      <div class="label">粉底需换白色描线</div>
+    </div>
+    <div class="card dark">
+      <h2 style="color:#fff">方案 A-line · 深色底</h2>
+      <img class="big" src="logo-line.svg">
+      <div class="label">深色模式</div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="card white">
+      <h2>方案 B · 莲花镂空鸟</h2>
+      <img class="big" src="logo-b.svg">
+      <div style="display:flex;align-items:center;gap:16px;"><img class="small" src="logo-b.svg"><img class="tiny" src="logo-b.svg"></div>
+      <div class="label">白底 / 96px / 40px</div>
+    </div>
+    <div class="card tint">
+      <h2>方案 B · 粉色底</h2>
+      <img class="big" src="logo-b.svg">
+      <div class="label">镂空处透出底色</div>
+    </div>
+    <div class="card dark">
+      <h2 style="color:#fff">方案 B · 深色底</h2>
+      <img class="big" src="logo-b.svg">
+      <div class="label">深色模式</div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="1024" height="1024">
+  <defs>
+    <linearGradient id="pinkLotusB" x1="0.15" y1="0" x2="0.85" y2="1">
+      <stop offset="0" stop-color="#FFA6C6"/>
+      <stop offset="0.5" stop-color="#F45C90"/>
+      <stop offset="1" stop-color="#CE2A62"/>
+    </linearGradient>
+
+    <!-- 宽幅莲花：五片宽底花瓣叠成实心 -->
+    <g id="lotusB">
+      <g transform="rotate(-78 256 482)">
+        <path d="M150 482 C150 420 190 352 256 300 C322 352 362 420 362 482 Z"/>
+      </g>
+      <g transform="rotate(78 256 482)">
+        <path d="M150 482 C150 420 190 352 256 300 C322 352 362 420 362 482 Z"/>
+      </g>
+      <g transform="rotate(-42 256 482)">
+        <path d="M136 482 C136 400 186 306 256 240 C326 306 376 400 376 482 Z"/>
+      </g>
+      <g transform="rotate(42 256 482)">
+        <path d="M136 482 C136 400 186 306 256 240 C326 306 376 400 376 482 Z"/>
+      </g>
+      <path d="M118 482 C112 384 172 276 256 206 C340 276 400 384 394 482 Z"/>
+      <path d="M92 468 Q256 506 420 468 Q384 522 256 528 Q128 522 92 468 Z"/>
+    </g>
+
+    <!-- 镂空莺鸟：沿用方案 A 的栖息剪影 -->
+    <g id="birdCutShape" transform="translate(256 368) scale(0.64) translate(-247 -204)">
+      <path d="M204 268 C176 258 150 246 126 228 C148 248 158 268 164 288 C180 284 194 278 204 268 Z"/>
+      <path d="M292 118
+               C318 120 334 138 332 162
+               L368 172
+               L332 182
+               C332 206 322 224 302 234
+               C298 258 276 274 246 276
+               C220 278 198 268 184 250
+               C196 228 204 206 206 186
+               C214 154 236 128 264 120
+               C272 118 282 117 292 118 Z"/>
+    </g>
+
+    <mask id="birdHole">
+      <rect x="0" y="0" width="512" height="512" fill="#FFFFFF"/>
+      <use href="#birdCutShape" fill="#000000"/>
+    </mask>
+  </defs>
+
+  <g mask="url(#birdHole)">
+    <use href="#lotusB" fill="url(#pinkLotusB)"/>
+  </g>
+</svg>

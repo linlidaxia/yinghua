@@ -1,0 +1,30 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>YingHua screenshot frame</title>
+<style>
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: #ffffff;
+    overflow: hidden;
+  }
+  #phone {
+    display: block;
+    width: 390px;
+    height: 844px;
+    border: 0;
+    background: #ffffff;
+  }
+</style>
+</head>
+<body>
+  <iframe id="phone" title="yinghua"></iframe>
+  <script>
+    // 把 ?shot=home|player|lyrics 原样传给 Flutter 入口。
+    document.getElementById('phone').src = 'index.html' + window.location.search;
+  </script>
+</body>
+</html>

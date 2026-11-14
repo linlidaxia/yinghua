@@ -1,0 +1,36 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  html, body { margin: 0; padding: 0; background: transparent; }
+  .icon {
+    width: 1024px; height: 1024px;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 232px;
+  }
+  .pink { background: linear-gradient(150deg, #FF9BC0 0%, #F2538C 55%, #D22F68 100%); }
+  .white { background: #FFFFFF; box-shadow: inset 0 0 0 2px rgba(0,0,0,.04); }
+  .dark { background: #1A1216; }
+  .icon img { width: 900px; height: 900px; display: block; }
+  .fg { width: 1024px; height: 1024px; display: flex; align-items: center; justify-content: center; }
+  .fg img { width: 680px; height: 680px; display: block; }
+</style>
+</head>
+<body>
+  <div id="root"></div>
+  <script>
+    const p = new URLSearchParams(location.search);
+    const bg = p.get('bg') || 'pink';
+    const mode = p.get('mode') || 'icon';
+    const root = document.getElementById('root');
+    if (mode === 'foreground') {
+      root.className = 'fg';
+      root.innerHTML = '<img src="vinyl-mark.svg">';
+    } else {
+      root.className = 'icon ' + bg;
+      root.innerHTML = '<img src="vinyl-mark.svg">';
+    }
+  </script>
+</body>
+</html>
