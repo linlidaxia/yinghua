@@ -138,7 +138,23 @@ flutter test
 flutter build apk --release     # build/app/outputs/flutter-apk/app-release.apk
 ```
 
-安装：把 APK 拷贝到 Android 手机后直接安装（已使用仓库内 `yinghua-release.jks` 签名）。
+安装：把 `dist/yinghua-<版本>.apk` 拷贝到 Android 手机后直接安装。签名使用本机
+`android/key.properties` + `android/app/yinghua-release.jks`（两者已被 `.gitignore` 排除，
+不会进入仓库；缺少时会回退到 debug 签名）。
+
+### 版本与发布
+
+- 版本号：`pubspec.yaml` 的 `version: X.Y.Z+BUILD`，每次发版 BUILD（versionCode）加 1；
+  同时要更新 `lib/ui/pages/mine_page.dart` 与 `lib/ui/pages/settings_page.dart` 里硬编码的版本号
+- 构建后复制为 `dist/yinghua-X.Y.Z.apk`（`dist/` 不入库，只作为 Release 附件）
+- 发布到 GitHub Release：`CHANGELOG.md` 里写好该版本章节，然后执行
+
+```powershell
+pwsh tool/release.ps1 1.0.19
+```
+
+脚本会创建/复用标签 `v1.0.19` 的 Release，读取 `CHANGELOG.md` 对应章节作为说明，
+上传 `dist/yinghua-1.0.19.apk`，并在说明里写入文件大小与 SHA-256；重复执行不会重复上传。
 
 ### 关于 wma 等格式
 
