@@ -75,8 +75,9 @@ class UpdateInfo {
     if (rawDate != null) published = DateTime.tryParse(rawDate);
 
     final notes = (json['body'] as String?)?.trim() ?? '';
+    // Release 说明里可能写成 `**SHA-256**：``hash```，中间允许出现 Markdown 修饰符。
     final hash = RegExp(
-      r'SHA-?256\s*[:：]?\s*([0-9a-fA-F]{64})',
+      r'SHA-?256[^0-9a-fA-F]{0,24}([0-9a-fA-F]{64})',
       caseSensitive: false,
     ).firstMatch(notes);
 
@@ -272,7 +273,8 @@ class UpdateService {
     if (await target.exists()) {
       final length = await target.length();
       if ((info.apkSize <= 0 || length == info.apkSize) &&
-          await _isValidApk(target, info)) {
+          await _isValidApk(target, info) &&
+          await _matchesVersion(target, info)) {
         return target.path;
       }
       await target.delete();
@@ -309,6 +311,10 @@ class UpdateService {
       }
       if (!await _isValidApk(part, info)) {
         lastError = '下载到的文件不是有效的 APK';
+        continue;
+      }
+      if (!await _matchesVersion(part, info)) {
+        lastError = '下载到的安装包版本与更新说明不一致';
         continue;
       }
       _lastGoodSource = url;
@@ -409,6 +415,31 @@ class UpdateService {
     } catch (_) {
       return false;
     }
+  }
+
+  /// 读取 APK 内真实的 versionName；读取失败返回 null（例如非 Android 平台）。
+  ///
+  /// 仅比较文件名、大小或哈希还不够：联调时出现过「缓存文件大小相同、但内容是旧版本」，
+  /// 直接读 APK 里的 versionName 最可靠。
+  Future<String?> apkVersionName(String path) async {
+    if (!Platform.isAndroid) return null;
+    try {
+      final value = await _channel.invokeMapMethod<String, dynamic>(
+        'apkVersion',
+        {'path': path},
+      );
+      final name = value?['versionName'];
+      return name is String && name.trim().isNotEmpty ? name.trim() : null;
+    } on PlatformException {
+      return null;
+    }
+  }
+
+  Future<bool> _matchesVersion(File file, UpdateInfo info) async {
+    final name = await apkVersionName(file.path);
+    // 读不到版本号时退回大小 / 哈希校验，不因为平台差异误拒。
+    if (name == null) return true;
+    return AppVersion.compare(name, info.version) == 0;
   }
 
   /// 系统是否允许本应用安装 APK（Android 8+ 需要用户授权）。

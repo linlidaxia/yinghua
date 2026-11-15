@@ -10,6 +10,7 @@ import android.os.Build
 import android.os.PowerManager
 import android.provider.Settings
 import androidx.core.content.FileProvider
+import androidx.core.content.pm.PackageInfoCompat
 import com.ryanheise.audioservice.AudioServiceActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
@@ -47,9 +48,26 @@ class MainActivity : AudioServiceActivity() {
                         val path = call.argument<String>("path")
                         result.success(if (path.isNullOrBlank()) false else installApk(path))
                     }
+                    "apkVersion" -> {
+                        val path = call.argument<String>("path")
+                        result.success(if (path.isNullOrBlank()) null else apkVersion(path))
+                    }
                     else -> result.notImplemented()
                 }
             }
+    }
+
+    /** 读取 APK 里真实的 versionName / versionCode，用于拦截缓存里的旧安装包。 */
+    private fun apkVersion(path: String): Map<String, Any>? {
+        return try {
+            val info = packageManager.getPackageArchiveInfo(path, 0) ?: return null
+            mapOf(
+                "versionName" to (info.versionName ?: ""),
+                "versionCode" to PackageInfoCompat.getLongVersionCode(info)
+            )
+        } catch (_: Exception) {
+            null
+        }
     }
 
     /** Android 8+ 需要用户允许「安装未知应用」。 */

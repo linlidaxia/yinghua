@@ -73,7 +73,7 @@ $Notes
 ---
 
 **安装包**：``yinghua-$Version.apk``（$sizeMb MB，versionCode 见文件名对应提交）
-**SHA-256**：``$sha256``
+SHA-256: $sha256
 "@
 
 # ---- 鉴权 ----

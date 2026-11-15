@@ -51,6 +51,27 @@ void main() {
     );
   });
 
+  test('UpdateInfo reads SHA-256 from Markdown-formatted release notes', () {
+    final info = UpdateInfo.fromRelease({
+      'tag_name': 'v1.0.22',
+      'body':
+          '**安装包**：`yinghua-1.0.22.apk`\n'
+          '**SHA-256**：`b031ca7c87d283ce9cff58a7a1ecfb1fbe946409c4669909c8f1d3a5da5513e0`',
+      'assets': [
+        {
+          'name': 'yinghua-1.0.22.apk',
+          'size': 69692330,
+          'browser_download_url': 'https://example.com/yinghua-1.0.22.apk',
+        },
+      ],
+    });
+    expect(info, isNotNull);
+    expect(
+      info!.sha256,
+      'b031ca7c87d283ce9cff58a7a1ecfb1fbe946409c4669909c8f1d3a5da5513e0',
+    );
+  });
+
   test('UpdateInfo ignores releases without an APK', () {
     final info = UpdateInfo.fromRelease({
       'tag_name': 'v1.0.20',

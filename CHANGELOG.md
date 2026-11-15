@@ -3,6 +3,13 @@
 版本号规则：`pubspec.yaml` 的 `version: X.Y.Z+BUILD`，构建号（versionCode）每次发版 +1；
 APK 命名为 `dist/yinghua-X.Y.Z.apk`，GitHub Release 使用标签 `vX.Y.Z` 并附上该 APK。
 
+## v1.0.23
+
+- 修复：更新时会复用缓存里的旧安装包（文件名和大小相同），导致下载完成却装上旧版本、系统提示「已安装相同版本」
+- 下载前与下载后都会读取 APK 内真实的 `versionName`，与更新说明不一致的包会被丢弃并重新下载
+- 修复 GitHub Release 说明里带 Markdown 修饰的 SHA-256 无法解析、跳过哈希校验的问题
+- 发布说明中的 SHA-256 改为纯文本行，旧版本客户端也能识别
+
 ## v1.0.22
 
 - 更新失败时的提示改为中文原因（不再直接显示 dio 的英文报错），并区分超时、连接不可达、HTTP 状态码

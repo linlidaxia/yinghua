@@ -54,6 +54,18 @@ docker run -d --name yinghua-update \
 > 群晖的存储空间编号可能是 `/volume1`、`/volume2`、`/volume3`……按实际路径替换。
 > 如果 `docker` 共享文件夹在 volume3，路径就是 `/volume3/docker/yinghua/releases`。
 
+如果 NAS 上已有支持 IPv6 的自定义网络（例如 Navidrome 的 `navidrome-net`），也可以不用 host 网络：
+
+```bash
+docker run -d --name yinghua-update --restart unless-stopped \
+  --network navidrome-net \
+  -p 8098:80 \
+  -v /volume3/docker/yinghua/releases:/usr/share/nginx/html:ro \
+  nginx:alpine
+```
+
+这种方式依赖 Docker 守护进程把发布端口同时绑到 IPv6；不通时改用 `--network host` 最稳。
+
 访问地址变成 `http://[IPv6]:8088/update.json`。群晖 Docker 默认使用 bridge 网络，
 端口映射在 IPv6 下是否可用取决于 DSM 版本；不通时优先用 Web Station 的原生 nginx。
 

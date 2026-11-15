@@ -6,8 +6,8 @@ class AppVersion {
   AppVersion._();
 
   /// 与 `pubspec.yaml` 的 `version: X.Y.Z+BUILD` 保持一致。
-  static const String current = '1.0.22';
-  static const int build = 23;
+  static const String current = '1.0.23';
+  static const int build = 24;
 
   static String get display => '$current+$build';
 
