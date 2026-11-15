@@ -9,6 +9,7 @@ import 'data/local/favorites_store.dart';
 import 'data/local/settings_store.dart';
 import 'data/repositories/library_repository.dart';
 import 'data/sources/source_registry.dart';
+import 'data/update/update_service.dart';
 import 'playback/dlna_controller.dart';
 import 'playback/playback_controller.dart';
 import 'ui/home_shell.dart';
@@ -40,6 +41,9 @@ class YingHuaApp extends StatelessWidget {
         ChangeNotifierProvider<DownloadManager>.value(value: downloads),
         ChangeNotifierProvider<FavoritesStore>.value(value: favorites),
         Provider<LibraryRepository>.value(value: library),
+        Provider<UpdateService>(
+          create: (_) => UpdateService(settings: settings),
+        ),
         ChangeNotifierProvider<PlaybackController>.value(value: playback),
         ChangeNotifierProvider<DlnaController>(
           create: (_) => DlnaController(playback: playback, registry: registry),

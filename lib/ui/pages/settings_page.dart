@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/app_version.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_presets.dart';
 import '../../core/theme/app_typography.dart';
@@ -14,6 +15,7 @@ import '../sheets/background_sheet.dart';
 import '../sheets/lyric_offset_sheet.dart';
 import '../sheets/song_actions.dart';
 import '../sheets/dlna_sheet.dart';
+import '../sheets/update_dialog.dart';
 import '../widgets/brand_mark.dart';
 import '../widgets/common.dart';
 import 'cover_api_page.dart';
@@ -21,6 +23,7 @@ import 'downloads_page.dart';
 import 'home_layout_page.dart';
 import 'lyrics_api_page.dart';
 import 'servers_page.dart';
+import 'update_source_page.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -31,6 +34,16 @@ class SettingsPage extends StatefulWidget {
 
 class _SettingsPageState extends State<SettingsPage> {
   int? _cacheBytes;
+  bool _checkingUpdate = false;
+
+  Future<void> _checkUpdate(BuildContext context) async {
+    setState(() => _checkingUpdate = true);
+    try {
+      await checkForUpdates(context, manual: true);
+    } finally {
+      if (mounted) setState(() => _checkingUpdate = false);
+    }
+  }
 
   @override
   void initState() {
@@ -256,10 +269,48 @@ class _SettingsPageState extends State<SettingsPage> {
                 trailingText: '搜索设备',
                 onTap: () => showDlnaSheet(context),
               ),
+              _SwitchTile(
+                icon: Icons.update_rounded,
+                title: '启动时检查更新',
+                subtitle: '读取更新源的最新版本，仅在有更新时提示',
+                value: settings.autoUpdateCheck,
+                onChanged: settings.setAutoUpdateCheck,
+              ),
+              _Tile(
+                icon: Icons.cloud_outlined,
+                title: '更新源',
+                subtitle: settings.updateSource == 'manifest'
+                    ? (settings.updateManifestUrl.isEmpty
+                          ? '自建清单 · 尚未填写地址'
+                          : '自建清单 · ${settings.updateManifestUrl}')
+                    : 'GitHub Release · ${settings.updateRepo}',
+                trailingText: settings.updateSource == 'manifest'
+                    ? 'NAS'
+                    : 'GitHub',
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const UpdateSourcePage(),
+                  ),
+                ),
+              ),
+              _Tile(
+                icon: Icons.system_update_alt_rounded,
+                title: '检查更新',
+                subtitle: '手动检测更新源上的最新版本',
+                trailingText: _checkingUpdate ? '检测中…' : '检查',
+                onTap: _checkingUpdate ? null : () => _checkUpdate(context),
+              ),
+              _SwitchTile(
+                icon: Icons.bolt_outlined,
+                title: '下载加速镜像',
+                subtitle: 'GitHub 直连太慢时改用公共镜像下载安装包',
+                value: settings.updateUseMirror,
+                onChanged: settings.setUpdateUseMirror,
+              ),
               _Tile(
                 icon: Icons.info_outline_rounded,
                 title: '关于莺花',
-                subtitle: '版本 1.0.19 · 所有功能免费开放',
+                subtitle: '版本 ${AppVersion.current} · 所有功能免费开放',
                 onTap: () => _showAbout(context),
                 last: true,
               ),
@@ -272,7 +323,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 const BrandMark(size: 30),
                 const SizedBox(height: 10),
                 Text(
-                  '莺花 1.0.19',
+                  '莺花 ${AppVersion.current}',
                   style: AppText.caption.copyWith(
                     color: palette.textTertiary,
                     fontSize: 11,
@@ -505,7 +556,7 @@ class _SettingsPageState extends State<SettingsPage> {
           const SizedBox(height: 4),
           Center(
             child: Text(
-              '版本 1.0.19',
+              '版本 ${AppVersion.current}',
               style: AppText.caption.copyWith(color: palette.textTertiary),
             ),
           ),

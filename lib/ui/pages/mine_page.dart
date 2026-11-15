@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/app_version.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_typography.dart';
 import '../../data/local/download_manager.dart';
@@ -159,7 +160,7 @@ class MinePage extends StatelessWidget {
                   const BrandMark(size: 26),
                   const SizedBox(height: 8),
                   Text(
-                    '莺花 · 1.0.19',
+                    '莺花 · ${AppVersion.current}',
                     style: AppText.caption.copyWith(
                       color: palette.textTertiary,
                     ),

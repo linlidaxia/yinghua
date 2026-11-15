@@ -7,6 +7,7 @@ import 'pages/home_page.dart';
 import 'pages/library_page.dart';
 import 'pages/mine_page.dart';
 import 'pages/search_page.dart';
+import 'sheets/update_dialog.dart';
 import 'widgets/app_nav_bar.dart';
 import 'widgets/floating_lyric.dart';
 import 'widgets/mini_player.dart';
@@ -21,6 +22,23 @@ class HomeShell extends StatefulWidget {
 
 class _HomeShellState extends State<HomeShell> {
   int _index = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _autoCheckUpdate());
+  }
+
+  /// 启动后自动检查 GitHub 最新版本；失败静默，不打扰使用。
+  Future<void> _autoCheckUpdate() async {
+    if (!mounted) return;
+    final settings = context.read<SettingsStore>();
+    if (!settings.autoUpdateCheck) return;
+    // 等首屏与服务器请求稳定后再检测，避免抢带宽。
+    await Future<void>.delayed(const Duration(seconds: 3));
+    if (!mounted) return;
+    await checkForUpdates(context);
+  }
 
   void _openSearch() => setState(() => _index = 2);
 

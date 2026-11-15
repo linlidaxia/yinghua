@@ -44,6 +44,12 @@ class SettingsStore extends ChangeNotifier {
   static const _kCoverSource = 'cover_source';
   static const _kCoverApiUrl = 'cover_api_url';
   static const _kLyricsApiUrl = 'lyrics_api_url';
+  static const _kAutoUpdateCheck = 'auto_update_check';
+  static const _kUpdateRepo = 'update_repo';
+  static const _kSkippedUpdate = 'skipped_update_version';
+  static const _kUpdateMirror = 'update_use_mirror';
+  static const _kUpdateSource = 'update_source';
+  static const _kUpdateManifestUrl = 'update_manifest_url';
   static const _kPlaylistSkips = 'playlist_skips';
   static const _kSongLyricOffsets = 'lyric_offsets_song';
   static const _kPlaylistLyricOffsets = 'lyric_offsets_playlist';
@@ -65,6 +71,24 @@ class SettingsStore extends ChangeNotifier {
 
   /// 自定义歌词接口，空字符串表示不使用。
   String lyricsApiUrl = '';
+
+  /// 启动时自动检查 GitHub 最新 Release。
+  bool autoUpdateCheck = true;
+
+  /// 更新源仓库（`owner/repo`），需要是公开仓库。
+  String updateRepo = 'linlidaxia/yinghua';
+
+  /// 用户在自动弹窗里点「稍后」的版本，避免每次启动都弹同一个版本。
+  String skippedUpdateVersion = '';
+
+  /// GitHub 下载慢或不可达时，经公共加速镜像下载 APK。
+  bool updateUseMirror = true;
+
+  /// 更新源：`github`（公开 Release）或 `manifest`（自建 JSON 清单，例如 NAS）。
+  String updateSource = 'github';
+
+  /// 自建更新清单地址，指向返回版本信息的 JSON。
+  String updateManifestUrl = '';
 
   /// 歌单 id → 跳过头尾配置。
   final Map<String, SkipConfig> playlistSkips = {};
@@ -116,6 +140,12 @@ class SettingsStore extends ChangeNotifier {
     coverSource = prefs.getString(_kCoverSource) ?? 'server';
     coverApiUrl = prefs.getString(_kCoverApiUrl) ?? '';
     lyricsApiUrl = prefs.getString(_kLyricsApiUrl) ?? '';
+    autoUpdateCheck = prefs.getBool(_kAutoUpdateCheck) ?? true;
+    updateRepo = prefs.getString(_kUpdateRepo) ?? 'linlidaxia/yinghua';
+    skippedUpdateVersion = prefs.getString(_kSkippedUpdate) ?? '';
+    updateUseMirror = prefs.getBool(_kUpdateMirror) ?? true;
+    updateSource = prefs.getString(_kUpdateSource) ?? 'github';
+    updateManifestUrl = prefs.getString(_kUpdateManifestUrl) ?? '';
     playlistSkips
       ..clear()
       ..addAll(_decodeSkips(prefs.getString(_kPlaylistSkips)));
@@ -191,6 +221,55 @@ class SettingsStore extends ChangeNotifier {
     lyricsApiUrl = value.trim();
     notifyListeners();
     await _prefs?.setString(_kLyricsApiUrl, lyricsApiUrl);
+  }
+
+  // ---------------------------------------------------------------------------
+  // 应用更新
+  // ---------------------------------------------------------------------------
+
+  Future<void> setAutoUpdateCheck(bool value) async {
+    autoUpdateCheck = value;
+    notifyListeners();
+    await _prefs?.setBool(_kAutoUpdateCheck, value);
+  }
+
+  Future<void> setUpdateRepo(String value) async {
+    final repo = value.trim().replaceAll(RegExp(r'^https?://'), '');
+    updateRepo = repo.isEmpty ? 'linlidaxia/yinghua' : repo;
+    notifyListeners();
+    await _prefs?.setString(_kUpdateRepo, updateRepo);
+  }
+
+  /// 自动弹窗里点「稍后」时记住该版本，下次启动不再重复打扰。
+  Future<void> skipUpdateVersion(String version) async {
+    skippedUpdateVersion = version;
+    notifyListeners();
+    await _prefs?.setString(_kSkippedUpdate, version);
+  }
+
+  Future<void> clearSkippedUpdate() async {
+    if (skippedUpdateVersion.isEmpty) return;
+    skippedUpdateVersion = '';
+    notifyListeners();
+    await _prefs?.remove(_kSkippedUpdate);
+  }
+
+  Future<void> setUpdateUseMirror(bool value) async {
+    updateUseMirror = value;
+    notifyListeners();
+    await _prefs?.setBool(_kUpdateMirror, value);
+  }
+
+  Future<void> setUpdateSource(String value) async {
+    updateSource = value == 'manifest' ? 'manifest' : 'github';
+    notifyListeners();
+    await _prefs?.setString(_kUpdateSource, updateSource);
+  }
+
+  Future<void> setUpdateManifestUrl(String value) async {
+    updateManifestUrl = value.trim();
+    notifyListeners();
+    await _prefs?.setString(_kUpdateManifestUrl, updateManifestUrl);
   }
 
   // ---------------------------------------------------------------------------

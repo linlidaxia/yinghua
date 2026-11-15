@@ -9,12 +9,15 @@ import android.net.Uri
 import android.os.Build
 import android.os.PowerManager
 import android.provider.Settings
+import androidx.core.content.FileProvider
 import com.ryanheise.audioservice.AudioServiceActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
+import java.io.File
 
 class MainActivity : AudioServiceActivity() {
     private val channelName = "com.yinghua.yinghua/background"
+    private val updateChannelName = "com.yinghua.yinghua/update"
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -32,6 +35,64 @@ class MainActivity : AudioServiceActivity() {
                     else -> result.notImplemented()
                 }
             }
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, updateChannelName)
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "canInstall" -> result.success(canInstallPackages())
+                    "openInstallSettings" -> {
+                        openInstallSettings()
+                        result.success(true)
+                    }
+                    "installApk" -> {
+                        val path = call.argument<String>("path")
+                        result.success(if (path.isNullOrBlank()) false else installApk(path))
+                    }
+                    else -> result.notImplemented()
+                }
+            }
+    }
+
+    /** Android 8+ 需要用户允许「安装未知应用」。 */
+    private fun canInstallPackages(): Boolean =
+        Build.VERSION.SDK_INT < Build.VERSION_CODES.O ||
+            packageManager.canRequestPackageInstalls()
+
+    private fun installApk(path: String): Boolean {
+        return try {
+            val file = File(path)
+            if (!file.exists() || !canInstallPackages()) return false
+            val uri = FileProvider.getUriForFile(
+                this,
+                "$packageName.fileprovider",
+                file
+            )
+            val intent = Intent(Intent.ACTION_VIEW).apply {
+                setDataAndType(uri, "application/vnd.android.package-archive")
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            startActivity(intent)
+            true
+        } catch (_: Exception) {
+            false
+        }
+    }
+
+    private fun openInstallSettings() {
+        try {
+            val intent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                Intent(
+                    Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
+                    Uri.parse("package:$packageName")
+                )
+            } else {
+                Intent(Settings.ACTION_SETTINGS)
+            }
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            startActivity(intent)
+        } catch (_: Exception) {
+            // 系统页面不可用时忽略。
+        }
     }
 
     private fun batteryStatus(): Map<String, Any> {

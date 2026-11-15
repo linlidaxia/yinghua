@@ -75,6 +75,16 @@
 - **封面接口可配置**：默认走 Navidrome getCoverArt，也可换成任意返回图片的 URL 模板
 - **歌词接口可配置**：服务器歌词 → 自定义接口 → LRCLIB，顺序与开关都能改
 
+**应用更新**
+
+- **启动自动检测**：启动 3 秒后读取更新源的最新版本，有新版本时弹出版本说明与确认框
+- 确认后后台下载 APK 并显示进度，下载完成提示「立即安装」，交给系统安装器覆盖升级
+- Android 8+ 自动引导「安装未知应用」授权；下载包会校验大小与 APK 文件头
+- 「稍后」会记住该版本，之后自动检测不再重复打扰；设置页「检查更新」随时手动检测，流程一致
+- 设置 → 服务可关闭「启动时检查更新」；更新源支持两种：
+  - **GitHub Release**（默认）：读公开仓库 `linlidaxia/yinghua` 的 `/releases/latest`，直连过慢自动切换公共加速镜像
+  - **自建清单**：读一个 JSON（NAS / 对象存储），按 IPv6 直连下载，适合国内网络；配置见 [`docs/UPDATE_SERVER.md`](docs/UPDATE_SERVER.md)
+
 ## 接口配置
 
 「设置 → 接口」里可以替换封面与歌词的数据来源，适合服务器封面缺失、或想接自己的接口。
@@ -116,12 +126,13 @@ lib/
     sources/                # MusicSource 接口 + Subsonic 实现 + 演示资料库 + 在线歌词
     repositories/           # LibraryRepository（带 TTL 缓存）
     local/                  # 设置、下载、收藏、封面缓存
+    update/                 # GitHub Release 检测、APK 下载与安装渠道
   playback/                 # 播放控制、audio_service 适配、音频缓存
   ui/
     home_shell.dart         # 底部导航 + 迷你播放条 + 悬浮歌词
     pages/                  # 首页、资料库、搜索、我的、播放页、设置、接口配置等
     widgets/                # 封面、黑胶、歌词、队列、卡片等
-    sheets/                 # 歌曲操作、定时停止、歌词校准、歌曲信息
+    sheets/                 # 歌曲操作、定时停止、歌词校准、歌曲信息、更新弹窗
 tool/screenshots/           # 截图专用 Web 入口与 390×844 iframe 外壳（不参与 APK）
 docs/                       # 设计规范、自查报告、截图
 test/widget_test.dart       # 解析 / 格式 / URL 单元测试
@@ -145,16 +156,20 @@ flutter build apk --release     # build/app/outputs/flutter-apk/app-release.apk
 ### 版本与发布
 
 - 版本号：`pubspec.yaml` 的 `version: X.Y.Z+BUILD`，每次发版 BUILD（versionCode）加 1；
-  同时要更新 `lib/ui/pages/mine_page.dart` 与 `lib/ui/pages/settings_page.dart` 里硬编码的版本号
+  同时改 `lib/core/app_version.dart` 的 `current` / `build`，关于页、我的页与更新检测都读这里
 - 构建后复制为 `dist/yinghua-X.Y.Z.apk`（`dist/` 不入库，只作为 Release 附件）
 - 发布到 GitHub Release：`CHANGELOG.md` 里写好该版本章节，然后执行
 
 ```powershell
-pwsh tool/release.ps1 1.0.19
+pwsh tool/release.ps1 1.0.20
 ```
 
-脚本会创建/复用标签 `v1.0.19` 的 Release，读取 `CHANGELOG.md` 对应章节作为说明，
-上传 `dist/yinghua-1.0.19.apk`，并在说明里写入文件大小与 SHA-256；重复执行不会重复上传。
+脚本会创建/复用标签 `v1.0.20` 的 Release，读取 `CHANGELOG.md` 对应章节作为说明，
+上传 `dist/yinghua-1.0.20.apk`，并在说明里写入文件大小与 SHA-256；重复执行不会重复上传。
+
+> Release 是应用的更新源：App 读 `/releases/latest` 判断新版本并下载其中的 `.apk`。
+> 仓库必须保持 **public**（私有仓库匿名请求会返回 404）；标签使用 `vX.Y.Z`，
+> 且每个 Release 至少要有一个 `.apk` 附件。删掉或改坏 Release 会影响所有已安装设备的自动更新。
 
 ### 关于 wma 等格式
 
