@@ -275,16 +275,23 @@ class SubsonicSource extends MusicSource {
   }
 
   @override
-  Future<SearchResult> search(String query) async {
+  Future<SearchResult> search(
+    String query, {
+    int songOffset = 0,
+    int songCount = 100,
+    int albumCount = 12,
+    int artistCount = 10,
+  }) async {
     final q = query.trim();
     if (q.isEmpty) return const SearchResult();
     final response = await _client.call(
       'search3',
       params: {
         'query': q,
-        'songCount': '40',
-        'albumCount': '12',
-        'artistCount': '10',
+        'songOffset': '$songOffset',
+        'songCount': '$songCount',
+        'albumCount': '$albumCount',
+        'artistCount': '$artistCount',
       },
     );
     final result = _map(response['searchResult3']);

@@ -339,19 +339,25 @@ class DemoSource extends MusicSource {
   }
 
   @override
-  Future<SearchResult> search(String query) async {
+  Future<SearchResult> search(
+    String query, {
+    int songOffset = 0,
+    int songCount = 100,
+    int albumCount = 12,
+    int artistCount = 10,
+  }) async {
     final q = query.trim().toLowerCase();
     if (q.isEmpty) return const SearchResult();
+    final matched = _allSongs
+        .where(
+          (s) =>
+              s.title.toLowerCase().contains(q) ||
+              s.displayArtist.toLowerCase().contains(q) ||
+              s.displayAlbum.toLowerCase().contains(q),
+        )
+        .toList();
     return SearchResult(
-      songs: _allSongs
-          .where(
-            (s) =>
-                s.title.toLowerCase().contains(q) ||
-                s.displayArtist.toLowerCase().contains(q) ||
-                s.displayAlbum.toLowerCase().contains(q),
-          )
-          .take(40)
-          .toList(),
+      songs: matched.skip(songOffset).take(songCount).toList(),
       albums: _albumData
           .map((e) => e.album)
           .where(
@@ -359,8 +365,12 @@ class DemoSource extends MusicSource {
                 a.name.toLowerCase().contains(q) ||
                 a.displayArtist.toLowerCase().contains(q),
           )
+          .take(albumCount)
           .toList(),
-      artists: _artists.where((a) => a.name.toLowerCase().contains(q)).toList(),
+      artists: _artists
+          .where((a) => a.name.toLowerCase().contains(q))
+          .take(artistCount)
+          .toList(),
     );
   }
 

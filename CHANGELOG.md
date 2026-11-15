@@ -3,6 +3,13 @@
 版本号规则：`pubspec.yaml` 的 `version: X.Y.Z+BUILD`，构建号（versionCode）每次发版 +1；
 APK 命名为 `dist/yinghua-X.Y.Z.apk`，GitHub Release 使用标签 `vX.Y.Z` 并附上该 APK。
 
+## v1.0.19
+
+- 修复搜索歌曲结果被截断：原来固定请求 `songCount=40`，搜「孙燕姿」只出 40 首，服务器实际有 243 首
+- `search3` 支持 `songOffset` 分页，首屏 100 首，自动补齐到 300 首，之后可「加载更多歌曲」
+- 分页结果按歌曲 id 去重，避免服务端排序波动造成重复条目
+- 搜索标题显示已加载数量，仍有更多时提示「已显示 N 首」
+
 ## v1.0.18
 
 ### DLNA 投屏

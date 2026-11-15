@@ -259,7 +259,7 @@ class _SettingsPageState extends State<SettingsPage> {
               _Tile(
                 icon: Icons.info_outline_rounded,
                 title: '关于莺花',
-                subtitle: '版本 1.0.18 · 所有功能免费开放',
+                subtitle: '版本 1.0.19 · 所有功能免费开放',
                 onTap: () => _showAbout(context),
                 last: true,
               ),
@@ -272,7 +272,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 const BrandMark(size: 30),
                 const SizedBox(height: 10),
                 Text(
-                  '莺花 1.0.18',
+                  '莺花 1.0.19',
                   style: AppText.caption.copyWith(
                     color: palette.textTertiary,
                     fontSize: 11,
@@ -505,7 +505,7 @@ class _SettingsPageState extends State<SettingsPage> {
           const SizedBox(height: 4),
           Center(
             child: Text(
-              '版本 1.0.18',
+              '版本 1.0.19',
               style: AppText.caption.copyWith(color: palette.textTertiary),
             ),
           ),

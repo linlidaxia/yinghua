@@ -159,7 +159,7 @@ class MinePage extends StatelessWidget {
                   const BrandMark(size: 26),
                   const SizedBox(height: 8),
                   Text(
-                    '莺花 · 1.0.18',
+                    '莺花 · 1.0.19',
                     style: AppText.caption.copyWith(
                       color: palette.textTertiary,
                     ),

@@ -122,7 +122,19 @@ class LibraryRepository {
         ttl: const Duration(minutes: 10),
       );
 
-  Future<SearchResult> search(String query) => _source.search(query);
+  Future<SearchResult> search(
+    String query, {
+    int songOffset = 0,
+    int songCount = 100,
+    int albumCount = 12,
+    int artistCount = 10,
+  }) => _source.search(
+    query,
+    songOffset: songOffset,
+    songCount: songCount,
+    albumCount: albumCount,
+    artistCount: artistCount,
+  );
 
   Future<List<Song>> starredSongs({bool refresh = false}) => _remember(
     'starred_songs',

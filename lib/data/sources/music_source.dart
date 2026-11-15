@@ -43,7 +43,14 @@ abstract class MusicSource {
 
   Future<void> setStarred(Song song, bool starred);
 
-  Future<SearchResult> search(String query);
+  /// 搜索。歌曲支持分页（[songOffset] / [songCount]），专辑与歌手取首屏。
+  Future<SearchResult> search(
+    String query, {
+    int songOffset = 0,
+    int songCount = 100,
+    int albumCount = 12,
+    int artistCount = 10,
+  });
 
   Future<Lyric?> getLyric(Song song);
 

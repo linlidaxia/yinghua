@@ -37,6 +37,15 @@ class _SearchPageState extends State<SearchPage> {
   String _query = '';
   SortOrder _sort = SortOrder.server;
 
+  /// 搜索结果歌曲分页：首屏 100，自动补齐到 300，之后手动「加载更多」。
+  static const int _songPageSize = 100;
+  static const int _autoSongTarget = 300;
+
+  int _requestId = 0;
+  int _songOffset = 0;
+  bool _hasMoreSongs = false;
+  bool _loadingMore = false;
+
   static const _hotKeywords = <String>[
     '晚风',
     '南方',
@@ -60,10 +69,14 @@ class _SearchPageState extends State<SearchPage> {
     _debounce?.cancel();
     final query = value.trim();
     if (query.isEmpty) {
+      _requestId++;
       setState(() {
         _query = '';
         _result = null;
         _loading = false;
+        _loadingMore = false;
+        _hasMoreSongs = false;
+        _songOffset = 0;
         _error = null;
       });
       return;
@@ -73,26 +86,115 @@ class _SearchPageState extends State<SearchPage> {
     });
   }
 
+  /// 把新一页歌曲追加到结果里，按 id 去重（服务端排序不稳定时也安全）。
+  static List<Song> _appendUnique(List<Song> existing, List<Song> incoming) {
+    final ids = existing.map((song) => song.id).toSet();
+    return incoming.where((song) => ids.add(song.id)).toList();
+  }
+
   Future<void> _search(String query) async {
     if (!mounted) return;
+    final request = ++_requestId;
+    final repository = context.read<LibraryRepository>();
     setState(() {
       _query = query;
       _loading = true;
       _error = null;
+      _loadingMore = false;
+      _hasMoreSongs = false;
+      _songOffset = 0;
     });
     try {
-      final result = await context.read<LibraryRepository>().search(query);
-      if (!mounted || _controller.text.trim() != query) return;
+      final first = await repository.search(query, songCount: _songPageSize);
+      if (!mounted ||
+          request != _requestId ||
+          _controller.text.trim() != query) {
+        return;
+      }
+
+      var songs = first.songs;
+      var offset = songs.length;
+      var hasMore = songs.length >= _songPageSize;
       setState(() {
-        _result = result;
+        _result = first;
         _loading = false;
+        _songOffset = offset;
+        _hasMoreSongs = hasMore;
       });
+
+      // 自动补齐前几页，避免只搜出 40 首就和服务器对不上。
+      while (hasMore &&
+          songs.length < _autoSongTarget &&
+          mounted &&
+          request == _requestId) {
+        final next = await repository.search(
+          query,
+          songOffset: offset,
+          songCount: _songPageSize,
+        );
+        if (!mounted ||
+            request != _requestId ||
+            _controller.text.trim() != query) {
+          return;
+        }
+        final fresh = _appendUnique(songs, next.songs);
+        if (fresh.isEmpty) {
+          hasMore = false;
+          break;
+        }
+        songs = [...songs, ...fresh];
+        offset += next.songs.length;
+        hasMore = next.songs.length >= _songPageSize;
+        setState(() {
+          _result = SearchResult(
+            songs: songs,
+            albums: first.albums,
+            artists: first.artists,
+          );
+          _songOffset = offset;
+          _hasMoreSongs = hasMore;
+        });
+      }
     } catch (error) {
-      if (!mounted) return;
+      if (!mounted || request != _requestId) return;
       setState(() {
         _error = '$error';
         _loading = false;
       });
+    }
+  }
+
+  /// 手动加载下一批歌曲。
+  Future<void> _loadMoreSongs() async {
+    final result = _result;
+    if (result == null || _loadingMore || !_hasMoreSongs) return;
+    final request = _requestId;
+    final query = _query;
+    final repository = context.read<LibraryRepository>();
+    setState(() => _loadingMore = true);
+    try {
+      final next = await repository.search(
+        query,
+        songOffset: _songOffset,
+        songCount: _songPageSize,
+      );
+      if (!mounted || request != _requestId) return;
+      final current = _result;
+      if (current == null) return;
+      final fresh = _appendUnique(current.songs, next.songs);
+      setState(() {
+        _result = SearchResult(
+          songs: [...current.songs, ...fresh],
+          albums: current.albums,
+          artists: current.artists,
+        );
+        _songOffset += next.songs.length;
+        _hasMoreSongs = next.songs.length >= _songPageSize && fresh.isNotEmpty;
+        _loadingMore = false;
+      });
+    } catch (_) {
+      if (!mounted || request != _requestId) return;
+      setState(() => _loadingMore = false);
     }
   }
 
@@ -380,7 +482,12 @@ class _SearchPageState extends State<SearchPage> {
           const SizedBox(height: 18),
         ],
         if (songs.isNotEmpty) ...[
-          SectionHeader(title: '单曲', subtitle: '${songs.length} 首'),
+          SectionHeader(
+            title: '单曲',
+            subtitle: _hasMoreSongs
+                ? '已显示 ${songs.length} 首'
+                : '${songs.length} 首',
+          ),
           for (var i = 0; i < songs.length; i++)
             SongTile(
               song: songs[i],
@@ -392,6 +499,43 @@ class _SearchPageState extends State<SearchPage> {
                 title: '搜索 · $_query',
               ),
               onMore: () => showSongOptionsSheet(context, songs[i]),
+            ),
+          if (_hasMoreSongs)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpace.page,
+                12,
+                AppSpace.page,
+                4,
+              ),
+              child: _loadingMore
+                  ? Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        SizedBox(
+                          width: 15,
+                          height: 15,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: palette.brand,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          '正在加载更多歌曲',
+                          style: AppText.caption.copyWith(
+                            color: palette.textTertiary,
+                          ),
+                        ),
+                      ],
+                    )
+                  : SizedBox(
+                      width: double.infinity,
+                      child: GhostButton(
+                        label: '加载更多歌曲',
+                        onPressed: _loadMoreSongs,
+                      ),
+                    ),
             ),
         ],
       ],
