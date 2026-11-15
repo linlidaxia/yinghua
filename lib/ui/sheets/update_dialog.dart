@@ -77,7 +77,8 @@ Future<void> promptUpdate(
             children: [
               Text(
                 '当前 ${AppVersion.current}'
-                '${info.apkSize > 0 ? ' · ${info.sizeMb.toStringAsFixed(1)} MB' : ''}',
+                '${info.apkSize > 0 ? ' · ${info.sizeMb.toStringAsFixed(1)} MB' : ''}'
+                ' · 来源：${service.sourceLabel}',
                 style: AppText.caption.copyWith(color: palette.textTertiary),
               ),
               if (info.notes.isNotEmpty) ...[

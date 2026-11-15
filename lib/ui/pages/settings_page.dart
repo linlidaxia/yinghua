@@ -9,6 +9,7 @@ import '../../core/utils/formatters.dart';
 import '../../data/local/download_manager.dart';
 import '../../data/local/settings_store.dart';
 import '../../data/sources/source_registry.dart';
+import '../../data/update/update_service.dart';
 import '../../playback/audio_cache.dart';
 import '../../playback/playback_controller.dart';
 import '../sheets/background_sheet.dart';
@@ -43,6 +44,17 @@ class _SettingsPageState extends State<SettingsPage> {
     } finally {
       if (mounted) setState(() => _checkingUpdate = false);
     }
+  }
+
+  Future<void> _clearUpdateCache(BuildContext context) async {
+    final service = context.read<UpdateService>();
+    final bytes = await service.cachedBytes();
+    await service.clearCache();
+    if (!context.mounted) return;
+    showToast(
+      context,
+      bytes > 0 ? '已清理 ${Fmt.fileSize(bytes)} 更新缓存' : '没有需要清理的更新包',
+    );
   }
 
   @override
@@ -306,6 +318,13 @@ class _SettingsPageState extends State<SettingsPage> {
                 subtitle: 'GitHub 直连太慢时改用公共镜像下载安装包',
                 value: settings.updateUseMirror,
                 onChanged: settings.setUpdateUseMirror,
+              ),
+              _Tile(
+                icon: Icons.cleaning_services_outlined,
+                title: '清理更新缓存',
+                subtitle: '删除已下载的安装包，不影响当前版本',
+                trailingText: '清理',
+                onTap: () => _clearUpdateCache(context),
               ),
               _Tile(
                 icon: Icons.info_outline_rounded,

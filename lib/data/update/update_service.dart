@@ -133,6 +133,39 @@ class UpdateService {
   /// 本次进程里上次下载成功的源，下次优先使用（避免每次都先撞慢速直连）。
   static String? _lastGoodSource;
 
+  /// 更新源名称，界面展示用。
+  String get sourceLabel =>
+      settings.updateSource == 'manifest' ? '自建清单（NAS）' : 'GitHub Release';
+
+  /// 已下载的更新包占用空间。
+  Future<int> cachedBytes() async {
+    try {
+      final dir = Directory(
+        '${(await getTemporaryDirectory()).path}${Platform.pathSeparator}updates',
+      );
+      if (!await dir.exists()) return 0;
+      var total = 0;
+      await for (final entity in dir.list()) {
+        if (entity is File) total += await entity.length();
+      }
+      return total;
+    } catch (_) {
+      return 0;
+    }
+  }
+
+  /// 删除缓存里的更新包（装完或安装失败后释放空间）。
+  Future<void> clearCache() async {
+    try {
+      final dir = Directory(
+        '${(await getTemporaryDirectory()).path}${Platform.pathSeparator}updates',
+      );
+      if (await dir.exists()) await dir.delete(recursive: true);
+    } catch (_) {
+      // 缓存目录不可删时忽略。
+    }
+  }
+
   CancelToken? _cancelToken;
   bool _userCancelled = false;
 
