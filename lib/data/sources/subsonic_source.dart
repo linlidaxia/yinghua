@@ -438,8 +438,13 @@ class SubsonicSource extends MusicSource {
     int? maxBitRate,
     Duration? startOffset,
   }) async {
-    // wma / ape / dsf 等格式设备无法直接解码，交给服务端转成 mp3。
-    if (AudioFormat.needsTranscode(song.suffix)) {
+    // wma / ape / dsf 等设备不支持的格式，或「音质上限」低于源码率时，
+    // 交给服务端转成 mp3（降码率只能靠转码）。
+    if (AudioFormat.shouldTranscode(
+      song.suffix,
+      bitRate: song.bitRate,
+      maxBitRate: maxBitRate,
+    )) {
       final rate = (maxBitRate != null && maxBitRate > 0)
           ? maxBitRate
           : AudioFormat.transcodeBitRate;
@@ -452,11 +457,9 @@ class SubsonicSource extends MusicSource {
           'timeOffset': '${startOffset.inSeconds}',
       });
     }
-    return _client.uri('stream', {
-      'id': song.id,
-      'format': 'raw',
-      if (maxBitRate != null && maxBitRate > 0) 'maxBitRate': '$maxBitRate',
-    });
+    // 原始流（format=raw）不能带 maxBitRate：Navidrome 会因此尝试转码，
+    // 未配置 ffmpeg 时直接返回 503，表现为「音频格式不受支持」。
+    return _client.uri('stream', {'id': song.id, 'format': 'raw'});
   }
 
   @override

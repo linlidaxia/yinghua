@@ -3,6 +3,14 @@
 版本号规则：`pubspec.yaml` 的 `version: X.Y.Z+BUILD`，构建号（versionCode）每次发版 +1；
 APK 命名为 `dist/yinghua-X.Y.Z.apk`，GitHub Release 使用标签 `vX.Y.Z` 并附上该 APK。
 
+## v1.0.25
+
+- 修复设置了「音质上限」后无损歌曲无法播放（服务器返回 HTTP 503）的问题：`format=raw` 不再携带 `maxBitRate`
+- 码率上限低于源码率时改为显式请求服务端转码；源码率不高于上限时保持直连
+- 直连失败时自动回退到「忽略码率上限」的原始流，不会因为转码不可用而整首播不了
+- 转码失败时的提示更明确：说明 WMA/APE 等格式依赖 Navidrome 转码，并指引检查 ffmpeg 与音质上限
+- 新增 `AudioFormat.shouldTranscode` 单元测试
+
 ## v1.0.24
 
 - 更新弹窗显示下载来源（GitHub Release / 自建清单），确认更新前就能看出走的是哪条线路

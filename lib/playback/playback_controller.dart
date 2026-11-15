@@ -254,7 +254,7 @@ class PlaybackController extends ChangeNotifier {
     _subscriptions.add(
       player.errorStream.listen((error) {
         _loading = false;
-        _error = '播放出错：${error.message ?? '音频无法解码'}';
+        _error = _friendlyError(error);
         _notify();
       }),
     );
@@ -966,7 +966,7 @@ class PlaybackController extends ChangeNotifier {
         unawaited(_loadLyric(song));
       } catch (_) {
         _loading = false;
-        _error = _friendlyError(error);
+        _error = _friendlyError(error, song);
       }
     }
     _notify();
@@ -1004,10 +1004,13 @@ class PlaybackController extends ChangeNotifier {
     if (path != null && path.startsWith('assets/')) {
       return AudioSource.asset(path, tag: song);
     }
-    return AudioSource.uri(await _resolveUri(song), tag: song);
+    return AudioSource.uri(
+      await _resolveUri(song, ignoreBitRate: true),
+      tag: song,
+    );
   }
 
-  Future<Uri> _resolveUri(Song song) async {
+  Future<Uri> _resolveUri(Song song, {bool ignoreBitRate = false}) async {
     final source = registry.source;
     if (source == null) throw MusicSourceException('尚未连接音乐服务器');
     // 转码流不支持 seek，用服务端 timeOffset 从片头结束处开始转码。
@@ -1026,11 +1029,21 @@ class PlaybackController extends ChangeNotifier {
         '(id=${song.id}, suffix=${song.suffix})',
       );
     }
-    return source.resolveStream(
+    final uri = await source.resolveStream(
       song,
-      maxBitRate: settings.maxBitRate > 0 ? settings.maxBitRate : null,
+      maxBitRate: ignoreBitRate || settings.maxBitRate <= 0
+          ? null
+          : settings.maxBitRate,
       startOffset: offset,
     );
+    // 只记录参数名与关键值，token 等敏感参数不会进日志。
+    debugPrint(
+      '[playback] stream id=${song.id} suffix=${song.suffix} '
+      'bitRate=${song.bitRate} maxBitRate=${settings.maxBitRate} '
+      'format=${uri.queryParameters['format']} '
+      'params=${uri.queryParameters.keys.join(',')}',
+    );
+    return uri;
   }
 
   Future<void> _applyGain(Song song) async {
@@ -1120,13 +1133,15 @@ class PlaybackController extends ChangeNotifier {
     }, _index);
   }
 
-  String _friendlyError(Object error) {
+  String _friendlyError(Object error, [Song? song]) {
     if (error is MusicSourceException) return error.message;
+    final subject = song ?? _current;
     if (error is PlayerException) {
-      final suffix = AudioFormat.normalize(_current?.suffix);
+      final suffix = AudioFormat.normalize(subject?.suffix);
       if (suffix.isNotEmpty && AudioFormat.needsTranscode(suffix)) {
         return '这首歌是 ${suffix.toUpperCase()} 格式，设备无法直接解码。'
-            '已自动请求服务器转码，若仍失败请在 Navidrome 中开启转码（需要 ffmpeg）。';
+            'App 已请求 Navidrome 转码，但服务器没有返回音频（常见于未安装 ffmpeg 或转码队列繁忙）。'
+            '请在「设置 → 播放 → 音质上限」选择「原始码率」，并在 Navidrome 中确认转码可用。';
       }
       return '无法播放这首歌，可能是音频格式不受支持或链接已失效';
     }
