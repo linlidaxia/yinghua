@@ -51,6 +51,9 @@ docker run -d --name yinghua-update \
   nginx:alpine
 ```
 
+> 群晖的存储空间编号可能是 `/volume1`、`/volume2`、`/volume3`……按实际路径替换。
+> 如果 `docker` 共享文件夹在 volume3，路径就是 `/volume3/docker/yinghua/releases`。
+
 访问地址变成 `http://[IPv6]:8088/update.json`。群晖 Docker 默认使用 bridge 网络，
 端口映射在 IPv6 下是否可用取决于 DSM 版本；不通时优先用 Web Station 的原生 nginx。
 
