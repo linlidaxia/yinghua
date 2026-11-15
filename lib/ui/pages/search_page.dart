@@ -114,7 +114,8 @@ class _SearchPageState extends State<SearchPage> {
 
       var songs = first.songs;
       var offset = songs.length;
-      var hasMore = songs.length >= _songPageSize;
+      // 不假设服务端一定按请求的条数返回：只要本页非空就继续，直到取空或达到自动上限。
+      var hasMore = songs.isNotEmpty;
       setState(() {
         _result = first;
         _loading = false;
@@ -144,7 +145,7 @@ class _SearchPageState extends State<SearchPage> {
         }
         songs = [...songs, ...fresh];
         offset += next.songs.length;
-        hasMore = next.songs.length >= _songPageSize;
+        hasMore = next.songs.length > 0 && fresh.isNotEmpty;
         setState(() {
           _result = SearchResult(
             songs: songs,
@@ -189,7 +190,7 @@ class _SearchPageState extends State<SearchPage> {
           artists: current.artists,
         );
         _songOffset += next.songs.length;
-        _hasMoreSongs = next.songs.length >= _songPageSize && fresh.isNotEmpty;
+        _hasMoreSongs = fresh.isNotEmpty;
         _loadingMore = false;
       });
     } catch (_) {
