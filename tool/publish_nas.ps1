@@ -99,11 +99,18 @@ if ($Dest) {
 }
 
 if ($SshTarget -and $RemoteDir) {
-  Write-Host "正在通过 scp 推送…"
+  $hint = @'
+上传失败。群晖默认只开 SSH、不开 SFTP，scp 会报 "subsystem request failed"。
+三种解决办法（任选其一）：
+  1) DSM → 控制面板 → 文件服务 → SFTP → 勾选「启用 SFTP 服务」（端口可与 SSH 共用 22），然后重跑本命令；
+  2) 不传参，只生成到 dist/nas，再用 File Station 把两个文件拖进 NAS 目录；
+  3) 用 -Dest 指向已映射的 SMB 共享目录，例如 \\DiskStation\docker\yinghua\releases。
+'@
+  Write-Host '正在通过 scp 推送…'
   & scp $stagedApk "${SshTarget}:${RemoteDir}/$apkName"
-  if ($LASTEXITCODE -ne 0) { throw 'scp 上传 APK 失败' }
+  if ($LASTEXITCODE -ne 0) { throw $hint }
   & scp $manifestPath "${SshTarget}:${RemoteDir}/update.json"
-  if ($LASTEXITCODE -ne 0) { throw 'scp 上传 update.json 失败' }
+  if ($LASTEXITCODE -ne 0) { throw $hint }
   Write-Host "已推送：${SshTarget}:${RemoteDir}"
 }
 

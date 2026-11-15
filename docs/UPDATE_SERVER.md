@@ -98,6 +98,10 @@ pwsh tool/publish_nas.ps1 1.0.21 -SshTarget 'admin@diskstation.local' -RemoteDir
 3. 生成无 BOM 的 `update.json`
 4. 复制 / 上传 APK 与清单
 
+> 群晖默认只启用 SSH、不启用 SFTP，`scp` 会报 `subsystem request failed`。
+> 到 **控制面板 → 文件服务 → SFTP** 勾选「启用 SFTP 服务」（可与 SSH 共用 22 端口）后重试；
+> 或者只用脚本生成到 `dist/nas/`，再用 File Station 把两个文件拖到 NAS 目录。
+
 > 建议保留旧版本的 APK 一段时间，方便回滚；App 只读 `update.json`，旧文件不影响检测。
 
 ## 5. 在 App 里启用
