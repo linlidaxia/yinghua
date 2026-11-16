@@ -1,7 +1,7 @@
 name: yinghua
 description: "莺花 · 支持 Navidrome / Subsonic 的本地与串流音乐播放器"
 publish_to: 'none'
-version: 1.0.25+26
+version: 1.0.26+27
 
 environment:
   sdk: ^3.14.0

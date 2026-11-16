@@ -3,6 +3,13 @@
 版本号规则：`pubspec.yaml` 的 `version: X.Y.Z+BUILD`，构建号（versionCode）每次发版 +1；
 APK 命名为 `dist/yinghua-X.Y.Z.apk`，GitHub Release 使用标签 `vX.Y.Z` 并附上该 APK。
 
+## v1.0.26
+
+- 播放完成后由控制器直接计算下一首，列表循环 / 随机模式在队列边界不会再重复当前曲目
+- 随机模式播到队尾会重新洗牌，而不是固定回到第一首
+- 增加播放队列、播放模式、跳过头尾的诊断日志，便于定位「列表循环变单曲循环」与跳过失效
+- 发布脚本支持直接写入映射盘：`pwsh tool/publish_nas.ps1 1.0.26 -Dest 'M:\yinghua\releases'`
+
 ## v1.0.25
 
 - 修复设置了「音质上限」后无损歌曲无法播放（服务器返回 HTTP 503）的问题：`format=raw` 不再携带 `maxBitRate`

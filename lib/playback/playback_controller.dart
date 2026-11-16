@@ -281,6 +281,10 @@ class PlaybackController extends ChangeNotifier {
     _queueTitle = title?.trim().isNotEmpty == true ? title!.trim() : '播放队列';
     _queuePlaylistId = playlistId;
     _rebuildOrder();
+    debugPrint(
+      '[playback] playSongs len=${songs.length} start=$_index '
+      'mode=${_mode.name} playlist=${playlistId ?? '-'}',
+    );
     await _loadCurrent(autoPlay: true);
     _syncHandlerQueue();
     _notify();
@@ -528,6 +532,10 @@ class PlaybackController extends ChangeNotifier {
   Future<void> next({bool fromUser = true}) async {
     if (_queue.isEmpty) return;
     final pos = _orderPos;
+    debugPrint(
+      '[playback] next fromUser=$fromUser mode=${_mode.name} '
+      'index=$_index pos=$pos order=${_order.length} queue=${_queue.length}',
+    );
     if (_mode == PlayMode.repeatOne && !fromUser) {
       final start = _trackStart;
       if (casting) {
@@ -714,6 +722,11 @@ class PlaybackController extends ChangeNotifier {
   /// 载入新曲目后跳到片头结束处。
   Future<void> _applyIntroSkip() async {
     final skip = _activeSkip;
+    debugPrint(
+      '[playback] introSkip playlist=${_queuePlaylistId ?? '-'} '
+      'skip=${skip?.intro.inSeconds}/${skip?.outro.inSeconds} '
+      'streamOffset=${_streamOffset.inSeconds}',
+    );
     if (skip == null || !skip.isActive || skip.intro <= Duration.zero) return;
     // 转码流已经让服务端从片头处开始，无需再 seek。
     if (_streamOffset > Duration.zero) {
@@ -783,6 +796,10 @@ class PlaybackController extends ChangeNotifier {
     }
     if (_outroTriggered) return;
     _outroTriggered = true;
+    debugPrint(
+      '[playback] outroSkip at=${value.inSeconds}s '
+      'total=${total.inSeconds}s outro=${skip.outro.inSeconds}s',
+    );
     unawaited(_handleOutro());
   }
 
@@ -1100,13 +1117,45 @@ class PlaybackController extends ChangeNotifier {
   }
 
   Future<void> _advanceAfterComplete() async {
+    debugPrint(
+      '[playback] completed mode=${_mode.name} index=$_index '
+      'order=${_order.length} queue=${_queue.length} '
+      'skip=${_activeSkip?.intro.inSeconds}/${_activeSkip?.outro.inSeconds}',
+    );
     if (_mode == PlayMode.repeatOne) {
       await player.seek(Duration.zero);
       await player.play();
       _handlingComplete = false;
       return;
     }
-    await next(fromUser: false);
+    if (_queue.isEmpty) {
+      _handlingComplete = false;
+      return;
+    }
+    if (_order.isEmpty) _rebuildOrder();
+    // 不依赖 next() 里的下标推导，单独算一次目标曲目，避免出现「列表循环
+    // 却反复播同一首」的边界情况（队列只有一项、order 与 index 不同步等）。
+    final pos = _orderPos;
+    var target = _order.first;
+    if (pos < _order.length - 1) {
+      target = _order[pos + 1];
+    } else if (_mode == PlayMode.sequence) {
+      _handlingComplete = false;
+      await pause();
+      return;
+    } else if (_mode == PlayMode.shuffle) {
+      final remaining = List<int>.generate(_queue.length, (i) => i)
+        ..remove(_index)
+        ..shuffle(Random());
+      target = remaining.isEmpty ? _index : remaining.first;
+    }
+    if (target == _index && _queue.length > 1) {
+      // 防御：同一个队列里绝不在非单曲循环模式下重复当前曲目。
+      target = _order[(pos + 1) % _order.length];
+    }
+    debugPrint('[playback] advance to index=$target (from $_index)');
+    await _loadCurrent(index: target, autoPlay: true);
+    _syncHandlerQueue();
     _handlingComplete = false;
   }
 
