@@ -43,15 +43,10 @@ class AudioFormat {
 
   /// 是否需要服务端转码。
   ///
-  /// 除了设备不支持的格式，还包括「音质上限低于源码率」的情况：
-  /// 降码率只能通过转码实现，不能对 `format=raw` 直接带 `maxBitRate`，
-  /// 否则 Navidrome 会去调 ffmpeg，缺少时返回 503。
-  static bool shouldTranscode(String? suffix, {int? bitRate, int? maxBitRate}) {
-    if (needsTranscode(suffix)) return true;
-    final limit = maxBitRate ?? 0;
-    final source = bitRate ?? 0;
-    return limit > 0 && source > limit;
-  }
+  /// 只由「设备能否直接解码」决定：`mp3 / flac` 等一律直连。
+  /// 不再因为「音质上限」对原始流发起转码——Navidrome 未配置 ffmpeg 时
+  /// 会直接返回 503，表现为整首歌无法播放；可靠性比省一点流量更重要。
+  static bool shouldTranscode(String? suffix) => needsTranscode(suffix);
 
   /// 取路径的扩展名（不含点，已小写）。
   static String suffixOfPath(String path) {

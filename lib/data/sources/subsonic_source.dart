@@ -438,13 +438,10 @@ class SubsonicSource extends MusicSource {
     int? maxBitRate,
     Duration? startOffset,
   }) async {
-    // wma / ape / dsf 等设备不支持的格式，或「音质上限」低于源码率时，
-    // 交给服务端转成 mp3（降码率只能靠转码）。
-    if (AudioFormat.shouldTranscode(
-      song.suffix,
-      bitRate: song.bitRate,
-      maxBitRate: maxBitRate,
-    )) {
+    // wma / ape / dsf 等设备不支持的格式，交给服务端转成 mp3。
+    // mp3 / flac 等一律直连：即使设置了「音质上限」也不对原始流发起转码，
+    // 避免 Navidrome 缺少 ffmpeg 时返回 503 导致整首无法播放。
+    if (AudioFormat.shouldTranscode(song.suffix)) {
       final rate = (maxBitRate != null && maxBitRate > 0)
           ? maxBitRate
           : AudioFormat.transcodeBitRate;
