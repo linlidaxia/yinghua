@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
@@ -35,10 +36,29 @@ class _PlaylistPageState extends State<PlaylistPage> {
   PlaylistDetail? _detail;
   SortOrder _sort = SortOrder.server;
 
+  /// 「继续播放」只在进入歌单后短暂显示，避免长期占位。
+  bool _showResume = true;
+  Timer? _resumeTimer;
+  static const Duration _resumeLifetime = Duration(seconds: 30);
+
   @override
   void initState() {
     super.initState();
     _future = _load();
+    _resumeTimer = Timer(_resumeLifetime, () {
+      if (mounted) setState(() => _showResume = false);
+    });
+  }
+
+  @override
+  void dispose() {
+    _resumeTimer?.cancel();
+    super.dispose();
+  }
+
+  void _hideResume() {
+    _resumeTimer?.cancel();
+    if (_showResume) setState(() => _showResume = false);
   }
 
   Future<PlaylistDetail> _load() async {
@@ -132,19 +152,23 @@ class _PlaylistPageState extends State<PlaylistPage> {
                                 ),
                               ),
                             ),
-                          if (resumeIndex >= 0) ...[
+                          if (_showResume && resumeIndex >= 0) ...[
                             const SizedBox(height: 14),
                             _ResumeBar(
                               song: songs[resumeIndex],
                               index: resumeIndex,
                               position: saved!.position,
-                              onResume: () => _resume(
-                                context,
-                                songs,
-                                resumeIndex,
-                                saved.position,
-                              ),
+                              onResume: () {
+                                _hideResume();
+                                _resume(
+                                  context,
+                                  songs,
+                                  resumeIndex,
+                                  saved.position,
+                                );
+                              },
                               onRestart: () {
+                                _hideResume();
                                 context
                                     .read<SettingsStore>()
                                     .clearPlaylistProgress(widget.playlistId);
@@ -351,6 +375,7 @@ class _PlaylistPageState extends State<PlaylistPage> {
   }
 
   void _play(BuildContext context, List<Song> songs, {int index = 0}) {
+    _hideResume();
     context.read<PlaybackController>().playSongs(
       songs,
       startIndex: index,
@@ -376,6 +401,7 @@ class _PlaylistPageState extends State<PlaylistPage> {
   }
 
   void _playShuffled(BuildContext context, List<Song> songs) {
+    _hideResume();
     final shuffled = List.of(songs)..shuffle();
     context.read<PlaybackController>().playSongs(
       shuffled,
