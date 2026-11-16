@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/library_models.dart';
+import '../models/playlist_progress.dart';
 import '../models/skip_config.dart';
 
 /// 首页模块定义，供「首页自定义」与渲染共用。
@@ -51,6 +52,7 @@ class SettingsStore extends ChangeNotifier {
   static const _kUpdateSource = 'update_source';
   static const _kUpdateManifestUrl = 'update_manifest_url';
   static const _kPlaylistSkips = 'playlist_skips';
+  static const _kPlaylistProgress = 'playlist_progress';
   static const _kSongLyricOffsets = 'lyric_offsets_song';
   static const _kPlaylistLyricOffsets = 'lyric_offsets_playlist';
 
@@ -92,6 +94,9 @@ class SettingsStore extends ChangeNotifier {
 
   /// 歌单 id → 跳过头尾配置。
   final Map<String, SkipConfig> playlistSkips = {};
+
+  /// 歌单 id → 上次播放进度（最后歌曲 + 位置）。
+  final Map<String, PlaylistProgress> playlistProgress = {};
   bool floatingLyricEnabled = false;
   int maxBitRate = 0;
 
@@ -149,6 +154,9 @@ class SettingsStore extends ChangeNotifier {
     playlistSkips
       ..clear()
       ..addAll(_decodeSkips(prefs.getString(_kPlaylistSkips)));
+    playlistProgress
+      ..clear()
+      ..addAll(_decodeProgress(prefs.getString(_kPlaylistProgress)));
     final order = prefs.getStringList(_kHomeOrder);
     if (order != null && order.isNotEmpty) {
       final known = kHomeSections.map((e) => e.id).toSet();
@@ -319,6 +327,60 @@ class SettingsStore extends ChangeNotifier {
     await _prefs?.setString(
       _kPlaylistSkips,
       jsonEncode(playlistSkips.map((k, v) => MapEntry(k, v.toJson()))),
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // 歌单播放进度
+  // ---------------------------------------------------------------------------
+
+  static Map<String, PlaylistProgress> _decodeProgress(String? raw) {
+    if (raw == null || raw.isEmpty) return {};
+    try {
+      final data = jsonDecode(raw);
+      if (data is! Map) return {};
+      final result = <String, PlaylistProgress>{};
+      data.forEach((key, value) {
+        if (value is Map) {
+          final progress = PlaylistProgress.fromJson(
+            Map<String, dynamic>.from(value),
+          );
+          if (progress != null) result['$key'] = progress;
+        }
+      });
+      return result;
+    } catch (_) {
+      return {};
+    }
+  }
+
+  PlaylistProgress? progressForPlaylist(String? playlistId) {
+    if (playlistId == null || playlistId.isEmpty) return null;
+    return playlistProgress[playlistId];
+  }
+
+  /// 播放中会高频调用，默认不 notify，避免整页每秒重建；
+  /// 暂停 / 切歌这类关键时刻传 `notify: true`，让歌单页立即刷新「继续播放」。
+  Future<void> savePlaylistProgress(
+    String playlistId,
+    PlaylistProgress progress, {
+    bool notify = false,
+  }) async {
+    if (playlistId.isEmpty) return;
+    playlistProgress[playlistId] = progress;
+    await _prefs?.setString(
+      _kPlaylistProgress,
+      jsonEncode(playlistProgress.map((k, v) => MapEntry(k, v.toJson()))),
+    );
+    if (notify) notifyListeners();
+  }
+
+  Future<void> clearPlaylistProgress(String playlistId) async {
+    if (playlistProgress.remove(playlistId) == null) return;
+    notifyListeners();
+    await _prefs?.setString(
+      _kPlaylistProgress,
+      jsonEncode(playlistProgress.map((k, v) => MapEntry(k, v.toJson()))),
     );
   }
 

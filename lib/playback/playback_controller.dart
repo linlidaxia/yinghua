@@ -13,6 +13,7 @@ import '../data/local/favorites_store.dart';
 import '../data/local/settings_store.dart';
 import '../data/models/library_models.dart';
 import '../data/models/lyric.dart';
+import '../data/models/playlist_progress.dart';
 import '../data/models/skip_config.dart';
 import '../data/repositories/library_repository.dart';
 import '../data/sources/music_source.dart';
@@ -112,6 +113,11 @@ class PlaybackController extends ChangeNotifier {
   Duration _duration = Duration.zero;
   String _queueTitle = '播放队列';
   String? _queuePlaylistId;
+
+  /// 恢复歌单进度时，新曲目加载完成后要跳到的位置。
+  Duration? _pendingStart;
+  DateTime _lastProgressSave = DateTime.fromMillisecondsSinceEpoch(0);
+  static const Duration _progressSaveInterval = Duration(seconds: 5);
   Lyric? _lyric;
   bool _lyricLoading = false;
   String? _lyricError;
@@ -229,6 +235,7 @@ class PlaybackController extends ChangeNotifier {
         _updateLyricLine();
         _applyIntroOnTick(value);
         _applyOutroSkip(value);
+        unawaited(_savePlaylistProgress());
       }),
     );
     _subscriptions.add(
@@ -272,14 +279,18 @@ class PlaybackController extends ChangeNotifier {
     int startIndex = 0,
     String? title,
     String? playlistId,
+    Duration? startPosition,
   }) async {
     if (songs.isEmpty) return;
+    await _savePlaylistProgress(force: true);
     _queue
       ..clear()
       ..addAll(songs);
     _index = startIndex.clamp(0, _queue.length - 1);
     _queueTitle = title?.trim().isNotEmpty == true ? title!.trim() : '播放队列';
     _queuePlaylistId = playlistId;
+    _pendingStart = startPosition;
+    _lastProgressSave = DateTime.fromMillisecondsSinceEpoch(0);
     _rebuildOrder();
     debugPrint(
       '[playback] playSongs len=${songs.length} start=$_index '
@@ -314,6 +325,7 @@ class PlaybackController extends ChangeNotifier {
 
   Future<void> jumpTo(int index) async {
     if (index < 0 || index >= _queue.length) return;
+    await _savePlaylistProgress(force: true);
     await _loadCurrent(index: index, autoPlay: true);
     _syncHandlerQueue();
     _notify();
@@ -322,6 +334,7 @@ class PlaybackController extends ChangeNotifier {
   Future<void> removeFromQueue(int index) async {
     if (index < 0 || index >= _queue.length) return;
     final removingCurrent = index == _index;
+    if (removingCurrent) await _savePlaylistProgress(force: true);
     _queue.removeAt(index);
     if (_queue.isEmpty) {
       await clearQueue();
@@ -354,6 +367,7 @@ class PlaybackController extends ChangeNotifier {
   }
 
   Future<void> clearQueue() async {
+    await _savePlaylistProgress(force: true);
     _queue.clear();
     _order.clear();
     _index = -1;
@@ -398,9 +412,11 @@ class PlaybackController extends ChangeNotifier {
       } catch (_) {
         // 设备离线时保持 UI 状态，下一次操作会重试。
       }
+      await _savePlaylistProgress(force: true);
       return;
     }
     await player.pause();
+    await _savePlaylistProgress(force: true);
   }
 
   Future<void> play() async {
@@ -509,6 +525,7 @@ class PlaybackController extends ChangeNotifier {
     position.value = shown < Duration.zero ? Duration.zero : shown;
     _updateLyricLine();
     _applyOutroSkip(position.value);
+    unawaited(_savePlaylistProgress());
 
     handler.externalPlaying = isPlaying;
     handler.externalPosition = position.value;
@@ -531,6 +548,7 @@ class PlaybackController extends ChangeNotifier {
 
   Future<void> next({bool fromUser = true}) async {
     if (_queue.isEmpty) return;
+    await _savePlaylistProgress(force: true);
     final pos = _orderPos;
     debugPrint(
       '[playback] next fromUser=$fromUser mode=${_mode.name} '
@@ -573,6 +591,7 @@ class PlaybackController extends ChangeNotifier {
 
   Future<void> previous({bool fromUser = true}) async {
     if (_queue.isEmpty) return;
+    await _savePlaylistProgress(force: true);
     final at = casting ? position.value : player.position;
     final start = _trackStart;
     if (at > const Duration(seconds: 3) + start) {
@@ -832,6 +851,58 @@ class PlaybackController extends ChangeNotifier {
     await next(fromUser: false);
   }
 
+  /// 恢复歌单进度：把新加载的曲目定位到上次播放的位置。
+  Future<void> _applyPendingStart() async {
+    final resume = _pendingStart;
+    _pendingStart = null;
+    if (resume == null || resume <= Duration.zero) return;
+    try {
+      await player.seek(resume);
+      position.value = resume;
+      _introDone = true;
+      _outroTriggered = false;
+    } catch (_) {
+      // seek 失败时保持从头播放。
+    }
+  }
+
+  /// 记录当前歌单播到哪首、哪个位置。
+  ///
+  /// 播放中由 positionStream 高频触发，内部按 5 秒节流；
+  /// 切歌 / 暂停 / 退出时用 `force: true` 立即落盘。
+  Future<void> _savePlaylistProgress({bool force = false}) async {
+    final playlistId = _queuePlaylistId;
+    final song = _current;
+    if (playlistId == null || playlistId.isEmpty || song == null) return;
+    final now = DateTime.now();
+    if (!force && now.difference(_lastProgressSave) < _progressSaveInterval) {
+      return;
+    }
+    Duration at;
+    try {
+      at = casting ? position.value : player.position;
+    } catch (_) {
+      at = position.value;
+    }
+    if (!force && at < const Duration(seconds: 5)) return;
+    // 已经播到结尾时保存「下一首从头开始」，避免下次继续播放直接秒完。
+    final total = _duration;
+    if (total > Duration.zero && at > total - const Duration(seconds: 2)) {
+      at = Duration.zero;
+    }
+    _lastProgressSave = now;
+    await settings.savePlaylistProgress(
+      playlistId,
+      PlaylistProgress(
+        songId: song.id,
+        index: _index,
+        position: at < Duration.zero ? Duration.zero : at,
+        updatedAt: now,
+      ),
+      notify: force,
+    );
+  }
+
   void _updateLyricLine({bool force = false}) {
     final lyric = _lyric;
     if (lyric == null || !lyric.synced) {
@@ -957,6 +1028,7 @@ class PlaybackController extends ChangeNotifier {
       _loading = false;
       _error = null;
       await _applyIntroSkip();
+      await _applyPendingStart();
       if (autoPlay) {
         unawaited(player.play().catchError((Object _) {}));
       }
@@ -975,6 +1047,7 @@ class PlaybackController extends ChangeNotifier {
         _loading = false;
         _error = null;
         await _applyIntroSkip();
+        await _applyPendingStart();
         if (autoPlay) {
           unawaited(player.play().catchError((Object _) {}));
         }
@@ -1156,6 +1229,9 @@ class PlaybackController extends ChangeNotifier {
     debugPrint('[playback] advance to index=$target (from $_index)');
     await _loadCurrent(index: target, autoPlay: true);
     _syncHandlerQueue();
+    // 整首播完后，进度应指向新曲目的开头，而不是上一首的结尾。
+    _lastProgressSave = DateTime.fromMillisecondsSinceEpoch(0);
+    await _savePlaylistProgress(force: true);
     _handlingComplete = false;
   }
 
@@ -1210,6 +1286,7 @@ class PlaybackController extends ChangeNotifier {
 
   @override
   void dispose() {
+    unawaited(_savePlaylistProgress(force: true));
     _disposed = true;
     _sleepTimer?.cancel();
     _scrobbleTimer?.cancel();

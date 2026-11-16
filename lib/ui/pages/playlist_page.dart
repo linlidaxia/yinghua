@@ -95,9 +95,14 @@ class _PlaylistPageState extends State<PlaylistPage> {
                       }
                       final playlist = detail.playlist;
                       final songs = sortSongs(detail.songs, _sort);
-                      final skip = context.watch<SettingsStore>().skipFor(
+                      final settings = context.watch<SettingsStore>();
+                      final skip = settings.skipFor(widget.playlistId);
+                      final saved = settings.progressForPlaylist(
                         widget.playlistId,
                       );
+                      final resumeIndex = (saved != null && saved.isUsable)
+                          ? songs.indexWhere((song) => song.id == saved.songId)
+                          : -1;
                       final total = songs.fold<Duration>(
                         Duration.zero,
                         (sum, song) => sum + song.duration,
@@ -127,6 +132,26 @@ class _PlaylistPageState extends State<PlaylistPage> {
                                 ),
                               ),
                             ),
+                          if (resumeIndex >= 0) ...[
+                            const SizedBox(height: 14),
+                            _ResumeBar(
+                              song: songs[resumeIndex],
+                              index: resumeIndex,
+                              position: saved!.position,
+                              onResume: () => _resume(
+                                context,
+                                songs,
+                                resumeIndex,
+                                saved.position,
+                              ),
+                              onRestart: () {
+                                context
+                                    .read<SettingsStore>()
+                                    .clearPlaylistProgress(widget.playlistId);
+                                _play(context, songs);
+                              },
+                            ),
+                          ],
                           const SizedBox(height: 18),
                           Padding(
                             padding: const EdgeInsets.symmetric(
@@ -334,6 +359,22 @@ class _PlaylistPageState extends State<PlaylistPage> {
     );
   }
 
+  /// 从上次停下的歌曲与位置继续。
+  void _resume(
+    BuildContext context,
+    List<Song> songs,
+    int index,
+    Duration position,
+  ) {
+    context.read<PlaybackController>().playSongs(
+      songs,
+      startIndex: index,
+      title: widget.playlistName ?? _detail?.playlist.name ?? '歌单',
+      playlistId: widget.playlistId,
+      startPosition: position,
+    );
+  }
+
   void _playShuffled(BuildContext context, List<Song> songs) {
     final shuffled = List.of(songs)..shuffle();
     context.read<PlaybackController>().playSongs(
@@ -482,6 +523,75 @@ class _Header extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _ResumeBar extends StatelessWidget {
+  const _ResumeBar({
+    required this.song,
+    required this.index,
+    required this.position,
+    required this.onResume,
+    required this.onRestart,
+  });
+
+  final Song song;
+  final int index;
+  final Duration position;
+  final VoidCallback onResume;
+  final VoidCallback onRestart;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = AppPalette.of(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpace.page),
+      child: Material(
+        color: palette.brandSoft,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        child: InkWell(
+          onTap: onResume,
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(14, 12, 8, 12),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.play_circle_fill_rounded,
+                  size: 36,
+                  color: palette.brand,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '继续播放',
+                        style: AppText.titleSm.copyWith(
+                          color: palette.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        '第 ${index + 1} 首 · ${song.title} · '
+                        '${Fmt.duration(position)}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppText.caption.copyWith(
+                          color: palette.textTertiary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                TextButton(onPressed: onRestart, child: const Text('从头播放')),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
