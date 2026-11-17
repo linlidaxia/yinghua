@@ -118,6 +118,12 @@ class PlaybackController extends ChangeNotifier {
   Duration? _pendingStart;
   DateTime _lastProgressSave = DateTime.fromMillisecondsSinceEpoch(0);
   static const Duration _progressSaveInterval = Duration(seconds: 5);
+
+  /// 蓝牙歌词：当前是否连了蓝牙输出、最后推送的歌词行。
+  bool _btConnected = false;
+  bool _lyricModeActive = false;
+  String _lastBtLyric = '';
+  StreamSubscription<Set<AudioDevice>>? _btDeviceSub;
   Lyric? _lyric;
   bool _lyricLoading = false;
   String? _lyricError;
@@ -228,6 +234,9 @@ class PlaybackController extends ChangeNotifier {
     handler.onPlay = play;
     handler.onPause = pause;
     handler.onSeek = seek;
+
+    settings.addListener(_onSettingsChanged);
+    unawaited(_listenAudioDevices());
 
     _subscriptions.add(
       player.positionStream.listen((value) {
@@ -453,6 +462,7 @@ class PlaybackController extends ChangeNotifier {
     }
     handler.broadcast();
     _notify();
+    _syncBluetoothLyric(force: true);
   }
 
   /// 退出投屏，把声音交还手机（[resume] 为真时接着放）。
@@ -465,6 +475,7 @@ class PlaybackController extends ChangeNotifier {
     handler.externalMode = false;
     _notify();
     handler.broadcast();
+    _syncBluetoothLyric(force: true);
     final song = _current;
     // 先恢复音量，即使重新载入音源失败也不会一直静音。
     try {
@@ -903,15 +914,80 @@ class PlaybackController extends ChangeNotifier {
     );
   }
 
+  void _onSettingsChanged() {
+    _syncBluetoothLyric(force: true);
+  }
+
+  /// 监听音频输出设备，只有连着蓝牙时才会改写系统媒体信息。
+  Future<void> _listenAudioDevices() async {
+    if (kIsWeb) return;
+    try {
+      final session = await AudioSession.instance;
+      _btDeviceSub = session.devicesStream.listen((devices) {
+        final connected = devices.any(
+          (device) =>
+              device.isOutput &&
+              // ignore: experimental_member_use
+              (device.type == AudioDeviceType.bluetoothA2dp ||
+                  // ignore: experimental_member_use
+                  device.type == AudioDeviceType.bluetoothSco ||
+                  // ignore: experimental_member_use
+                  device.type == AudioDeviceType.bluetoothLe),
+        );
+        if (connected == _btConnected) return;
+        _btConnected = connected;
+        debugPrint('[playback] bluetooth output: $connected');
+        _syncBluetoothLyric(force: true);
+      });
+    } catch (_) {
+      // 拿不到设备列表时退化为「不启用蓝牙歌词」。
+    }
+  }
+
+  /// 把当前歌词行推送到蓝牙设备（AVRCP 媒体信息）。
+  ///
+  /// 多数车机 / 蓝牙音箱显示的是 title / artist，所以这里用歌词替换 title，
+  /// 歌名与歌手放在 artist 与 display 字段；没有歌词或断开蓝牙时恢复原信息。
+  void _syncBluetoothLyric({bool force = false}) {
+    final song = _current;
+    if (song == null) return;
+    final enabled = settings.bluetoothLyrics && _btConnected && !casting;
+    String text = '';
+    if (enabled) {
+      final lyric = _lyric;
+      final index = lyricLine.value;
+      if (lyric != null &&
+          lyric.synced &&
+          index >= 0 &&
+          index < lyric.lines.length) {
+        text = lyric.lines[index].text.trim();
+      }
+    }
+    if (!enabled || text.isEmpty) {
+      if (_lyricModeActive) {
+        _lyricModeActive = false;
+        _lastBtLyric = '';
+        handler.restoreNowPlaying(song);
+      }
+      return;
+    }
+    if (!force && text == _lastBtLyric) return;
+    _lastBtLyric = text;
+    _lyricModeActive = true;
+    handler.setBluetoothLyric(song, text);
+  }
+
   void _updateLyricLine({bool force = false}) {
     final lyric = _lyric;
     if (lyric == null || !lyric.synced) {
       if (lyricLine.value != -1) lyricLine.value = -1;
+      _syncBluetoothLyric();
       return;
     }
     final index = lyric.indexAt(position.value, offsetMs: lyricOffsetMs);
     if (force || index != lyricLine.value) {
       lyricLine.value = index;
+      _syncBluetoothLyric();
     }
   }
 
@@ -997,6 +1073,8 @@ class PlaybackController extends ChangeNotifier {
       artUri: cover == null ? null : Uri.tryParse(cover),
     );
     handler.setQueueIndex(_orderPos);
+    _lastBtLyric = '';
+    _lyricModeActive = false;
 
     // 投屏中：本地播放器保持停止，只把曲目信息与进度交给音箱。
     if (casting) {
@@ -1288,6 +1366,8 @@ class PlaybackController extends ChangeNotifier {
   void dispose() {
     unawaited(_savePlaylistProgress(force: true));
     _disposed = true;
+    settings.removeListener(_onSettingsChanged);
+    unawaited(_btDeviceSub?.cancel());
     _sleepTimer?.cancel();
     _scrobbleTimer?.cancel();
     for (final sub in _subscriptions) {

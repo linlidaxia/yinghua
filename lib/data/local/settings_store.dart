@@ -33,6 +33,7 @@ class SettingsStore extends ChangeNotifier {
   static const _kReplayGain = 'replay_gain';
   static const _kOnlineLyrics = 'online_lyrics';
   static const _kFloatingLyric = 'floating_lyric';
+  static const _kBluetoothLyrics = 'bluetooth_lyrics';
   static const _kMaxBitRate = 'max_bit_rate';
   static const _kVolume = 'user_volume';
   static const _kHomeOrder = 'home_order';
@@ -98,6 +99,9 @@ class SettingsStore extends ChangeNotifier {
   /// 歌单 id → 上次播放进度（最后歌曲 + 位置）。
   final Map<String, PlaylistProgress> playlistProgress = {};
   bool floatingLyricEnabled = false;
+
+  /// 把当前歌词行写入系统媒体信息，让支持显示歌曲信息的蓝牙车机同步显示。
+  bool bluetoothLyrics = false;
   int maxBitRate = 0;
 
   /// 歌词校准的最大偏移（±2 分钟）。有声书 / 广播剧的偏差可能到分钟级。
@@ -132,6 +136,7 @@ class SettingsStore extends ChangeNotifier {
     replayGainEnabled = prefs.getBool(_kReplayGain) ?? true;
     onlineLyricsEnabled = prefs.getBool(_kOnlineLyrics) ?? true;
     floatingLyricEnabled = prefs.getBool(_kFloatingLyric) ?? false;
+    bluetoothLyrics = prefs.getBool(_kBluetoothLyrics) ?? false;
     maxBitRate = prefs.getInt(_kMaxBitRate) ?? 0;
     songLyricOffsets
       ..clear()
@@ -388,6 +393,12 @@ class SettingsStore extends ChangeNotifier {
     floatingLyricEnabled = value;
     notifyListeners();
     await _prefs?.setBool(_kFloatingLyric, value);
+  }
+
+  Future<void> setBluetoothLyrics(bool value) async {
+    bluetoothLyrics = value;
+    notifyListeners();
+    await _prefs?.setBool(_kBluetoothLyrics, value);
   }
 
   Future<void> setMaxBitRate(int value) async {

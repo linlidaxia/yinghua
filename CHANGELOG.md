@@ -3,6 +3,13 @@
 版本号规则：`pubspec.yaml` 的 `version: X.Y.Z+BUILD`，构建号（versionCode）每次发版 +1；
 APK 命名为 `dist/yinghua-X.Y.Z.apk`，GitHub Release 使用标签 `vX.Y.Z` 并附上该 APK。
 
+## v1.0.30
+
+- 新增**蓝牙歌词**（设置 → 播放）：把当前歌词行写入系统媒体信息（AVRCP title / displayTitle），支持显示歌曲信息的车机、蓝牙音箱会同步滚动
+- 自动检测蓝牙音频输出（A2DP / SCO / LE），只有连着蓝牙时才改写媒体信息；断开蓝牙、关闭开关或投屏时恢复歌曲信息
+- 歌词没有时间轴或当前行是间奏时，恢复显示歌名 / 歌手，不会把上一行歌词留在车机上
+- 歌名与歌手保留在 artist / displaySubtitle 字段，切歌时自动复位
+
 ## v1.0.29
 
 - 「继续播放」卡片改为进入歌单后 30 秒自动隐藏，不再长期占用界面

@@ -25,6 +25,10 @@ class YingHuaAudioHandler extends BaseAudioHandler
   Duration externalPosition = Duration.zero;
 
   int? _queueIndex;
+  Uri? _artUri;
+
+  /// 当前是否用歌词替换了系统媒体信息（蓝牙歌词）。
+  bool _lyricMode = false;
 
   void _broadcast() {
     final playing = externalMode ? externalPlaying : player.playing;
@@ -74,6 +78,8 @@ class YingHuaAudioHandler extends BaseAudioHandler
   }
 
   void setMediaItemForSong(Song song, {Uri? artUri}) {
+    _artUri = artUri;
+    _lyricMode = false;
     mediaItem.add(
       MediaItem(
         id: song.id,
@@ -85,6 +91,37 @@ class YingHuaAudioHandler extends BaseAudioHandler
         extras: {'songId': song.id},
       ),
     );
+  }
+
+  /// 蓝牙歌词：把当前歌词行写进 AVRCP 媒体信息。
+  ///
+  /// 车机 / 蓝牙音箱读取的是 title / artist（以及部分设备读取的
+  /// displayTitle / displaySubtitle），这里把歌词放进 title，
+  /// 歌名与歌手保留在 artist 与 display 字段里。
+  void setBluetoothLyric(Song song, String line) {
+    final text = line.trim();
+    if (text.isEmpty) return;
+    _lyricMode = true;
+    mediaItem.add(
+      MediaItem(
+        id: song.id,
+        title: text,
+        artist: '${song.title} · ${song.displayArtist}',
+        album: song.displayAlbum,
+        duration: song.duration,
+        artUri: _artUri,
+        displayTitle: text,
+        displaySubtitle: song.title,
+        displayDescription: song.displayArtist,
+        extras: {'songId': song.id, 'bluetoothLyric': true},
+      ),
+    );
+  }
+
+  /// 恢复到正常的歌曲信息（关闭蓝牙歌词 / 断开蓝牙 / 没有歌词时）。
+  void restoreNowPlaying(Song song) {
+    if (!_lyricMode) return;
+    setMediaItemForSong(song, artUri: _artUri);
   }
 
   void syncQueue(List<Song> songs, Uri? Function(Song) artUri, int index) {

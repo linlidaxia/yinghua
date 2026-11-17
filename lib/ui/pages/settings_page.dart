@@ -168,6 +168,13 @@ class _SettingsPageState extends State<SettingsPage> {
                 subtitle: '在应用内显示可拖动的悬浮歌词',
                 value: settings.floatingLyricEnabled,
                 onChanged: settings.setFloatingLyric,
+              ),
+              _SwitchTile(
+                icon: Icons.bluetooth_audio_rounded,
+                title: '蓝牙歌词',
+                subtitle: '把当前歌词行写入媒体信息，支持显示歌曲信息的车机 / 蓝牙音箱会同步滚动',
+                value: settings.bluetoothLyrics,
+                onChanged: settings.setBluetoothLyrics,
                 last: true,
               ),
             ],
